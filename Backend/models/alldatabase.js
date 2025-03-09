@@ -207,18 +207,7 @@ const reviewSchema = new mongoose.Schema({
 
 
 // Pre-save middleware for user IDs
-userSchema.pre('save', function(next) {
-  if (!this.isModified('role')) return next();
-  
-  if (this.role === 'client') {
-    this.client_id = this.client_id || `C-${uuidv4().slice(0, 8)}`;
-    this.engineer_id = undefined;
-  } else if (this.role === 'engineer') {
-    this.engineer_id = this.engineer_id || `E-${uuidv4().slice(0, 8)}`;
-    this.client_id = undefined;
-  }
-  next();
-});
+
 
 // Models
 const Signup = mongoose.model("Signup", userSchema);
