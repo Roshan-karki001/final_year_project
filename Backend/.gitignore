@@ -1,0 +1,14 @@
+<<<<<<< HEAD
+# Ignore environment files
+.env
+
+# Ignore Node modules
+node_modules/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+=======
+node_modules/
+.env
+>>>>>>> 6ff524b (Initial commit for backend where log in and sign up backend route , also contract and also project . also i edit the database structure used in my peoject)
