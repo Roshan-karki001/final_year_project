@@ -1,18 +1,31 @@
-const { Review } = require("../models/alldatabase");
+const { Review, Signup } = require("../models/alldatabase");
 
 // Get all reviews
 const getAllReviews = async (req, res) => {
     try {
-        const reviews = await Review.find().populate('user_id', 'F_name L_name');
+        // Only get reviews for engineers
+        const engineerUsers = await Signup.find({ role: "engineer" });
+        const engineerIds = engineerUsers.map(user => user._id);
+        
+        const reviews = await Review.find({ user_id: { $in: engineerIds } })
+            .populate('user_id', 'F_name L_name');
         res.status(200).json({ success: true, reviews });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 };
 
-// Get reviews by user ID
+// Get reviews by user ID (only for engineers)
 const getUserReviews = async (req, res) => {
     try {
+        const engineer = await Signup.findById(req.params.userId);
+        if (!engineer || engineer.role !== "engineer") {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Reviews can only be viewed for engineers" 
+            });
+        }
+
         const reviews = await Review.find({ user_id: req.params.userId })
             .populate('user_id', 'F_name L_name');
         res.status(200).json({ success: true, reviews });
@@ -38,11 +51,34 @@ const getReviewById = async (req, res) => {
 // Create a new review
 const createReview = async (req, res) => {
     try {
-        const { review_text, rating } = req.body;
-        const user_id = req.user.id; // From auth middleware
+        const { review_text, rating, engineer_id } = req.body;
+        const client_id = req.user.id; // From auth middleware
+
+        // Check if the target user is an engineer
+        const engineer = await Signup.findById(engineer_id);
+        if (!engineer || engineer.role !== "engineer") {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Reviews can only be created for engineers" 
+            });
+        }
+
+        // Check if client has already reviewed this engineer
+        const existingReview = await Review.findOne({ 
+            user_id: engineer_id,
+            client_id: client_id
+        });
+
+        if (existingReview) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "You have already reviewed this engineer" 
+            });
+        }
 
         const newReview = await Review.create({
-            user_id,
+            user_id: engineer_id,
+            client_id: client_id,
             review_text,
             rating
         });
@@ -68,7 +104,7 @@ const updateReview = async (req, res) => {
         }
 
         // Check if the user is the owner of the review
-        if (review.user_id.toString() !== req.user.id) {
+        if (review.client_id.toString() !== req.user.id) {
             return res.status(403).json({ success: false, message: "Not authorized to update this review" });
         }
 
@@ -98,7 +134,7 @@ const deleteReview = async (req, res) => {
         }
 
         // Check if the user is the owner of the review
-        if (review.user_id.toString() !== req.user.id) {
+        if (review.client_id.toString() !== req.user.id) {
             return res.status(403).json({ success: false, message: "Not authorized to delete this review" });
         }
 

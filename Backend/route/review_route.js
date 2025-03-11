@@ -13,7 +13,7 @@ const router = express.Router();
 
 // Public routes
 router.get("/", getAllReviews);
-router.get("/user/:userId", getUserReviews);
+router.get("/user/:id", getUserReviews);
 router.get("/:id", getReviewById);
 
 // Protected routes - require authentication

@@ -5,7 +5,7 @@ const {
     deleteMessage,
     getConversations
 } = require('../controller/message_controller');
-const { authenticateToken } = require('../'); // Assuming you have auth middleware
+const { authenticateToken } = require('../midware/authMiddleware'); // Assuming you have auth middleware
 
 const router = express.Router();
 
