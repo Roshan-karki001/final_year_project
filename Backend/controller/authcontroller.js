@@ -27,8 +27,12 @@ const register = async (req, res) => {
             return res.status(400).json({ message: "Invalid email format" });
         }
 
-        const existingUser = await Signup.findOne({ G_mail });
-        if (existingUser) return res.status(400).json({ message: "User already exists" });
+        // Fix: Change email to G_mail in the query
+        const existingUser = await Signup.findOne({ G_mail: G_mail });
+        if (existingUser) return res.status(400).json({ 
+            message: "User already exists",
+            details: "This email is already registered"
+        });
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const userIdPrefix = role === 'client' ? "C-" : role === 'engineer' ? "E-" : "";
@@ -38,19 +42,19 @@ const register = async (req, res) => {
         const randomToken = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Create a JWT for email verification with the token
-        const verificationToken = jwt.sign({ G_mail, randomToken }, process.env.JWT_SECRET, { expiresIn: "1d" });
+        const verificationToken = jwt.sign({ email: G_mail, randomToken }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
         // Create new user with all required fields
         const newUser = new Signup({
-            F_name,
-            L_name,
-            G_mail,
-            Phonenumber,
+            F_name: F_name,        // Changed from F_name to firstName
+            L_name: L_name,         // Changed from L_name to lastName
+            G_mail: G_mail,           // Changed from G_mail to email
+            Phonenumber: Phonenumber, // Changed from Phonenumber to phoneNumber
             password: hashedPassword,
             role,
             verificationToken,
             isVerified: false,
-            emailVerificationCode: randomToken // Save the verification code
+            emailVerificationCode: randomToken
         });
 
         // Save the user to database
@@ -69,7 +73,7 @@ const register = async (req, res) => {
             verificationToken: verificationToken
         });
     } catch (error) {
-        console.error("Registration error:", error); // Add this for debugging
+        console.error("Registration error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
@@ -77,11 +81,16 @@ const register = async (req, res) => {
 // Verify Email Route
 const verifyEmail = async (req, res) => {
     try {
-        const { verificationToken, inputCode } = req.body; // Get the input code from the frontend
-        console.log("Received verification token:", verificationToken); 
+        const { inputCode } = req.body;
+        const verificationToken = req.headers.authorization?.split(' ')[1];
+
+        if (!verificationToken) {
+            return res.status(400).json({ message: "Verification token is required" });
+        }
 
         const decoded = jwt.verify(verificationToken, process.env.JWT_SECRET);
-        const user = await Signup.findOne({ G_mail: decoded.G_mail });
+        // Changed from G_mail to email to match the token we created during registration
+        const user = await Signup.findOne({ G_mail: decoded.email });
 
         if (!user) return res.status(400).json({ message: "Invalid or expired token" });
 
@@ -93,11 +102,12 @@ const verifyEmail = async (req, res) => {
         // Set the user as verified and remove the verification code
         user.isVerified = true;
         user.verificationToken = null;
-        user.emailVerificationCode = null; // Clear the verification code
-        await user.save();  // Save changes to the database
+        user.emailVerificationCode = null;
+        await user.save();
 
         res.status(200).json({ message: "Email verified successfully. You can now log in." });
     } catch (error) {
+        console.error("Verification error:", error); // Added for debugging
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
@@ -210,10 +220,47 @@ const deleteAccount = async (req, res) => {
     }
 };
 
+// Edit Profile Route
+const editProfile = async (req, res) => {
+    try {
+        const { F_name, L_name, Phonenumber } = req.body;
+        // Get user ID from the token that was decoded in middleware
+        const userId = req.user.id;
+
+        const user = await Signup.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update only the fields that are provided
+        if (F_name) user.F_name = F_name;
+        if (L_name) user.L_name = L_name;
+        if (Phonenumber) user.Phonenumber = Phonenumber;
+
+        await user.save();
+
+        res.status(200).json({
+            message: "Profile updated successfully",
+            user: {
+                id: user._id,
+                name: `${user.F_name} ${user.L_name}`,
+                email: user.G_mail,
+                phoneNumber: user.Phonenumber,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        console.error("Edit profile error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+// Update the exports
 module.exports = {
     register,
     login,
     verifyEmail,
+    editProfile,  // Changed from editprofile to editProfile
     forgotPassword,
     changePassword,
     deleteAccount

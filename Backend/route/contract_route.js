@@ -1,24 +1,29 @@
-const express = require("express");
-const {postNewContract,getContractById,getAllContracts, editContract,deleteContract,searchContract,} = require("../controller/contract_controller");
-
+const express = require('express');
 const router = express.Router();
+const upload = require('../utils/uploadConfig');
+const { authenticateToken } = require('../midware/authMiddleware');
+const { 
+    getAllContracts,
+    getContractById,
+    postNewContract,
+    editContract,
+} = require('../controller/contract_controller');
 
-// Create a new contract
-router.post("/", postNewContract);
+// Ensure uploads directory exists
+const fs = require('fs');
+// Update the signatures directory path
+const dir = './uploads/signatures';
+if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+}
 
-// Get all contracts
-router.get("/", getAllContracts);
-
-// Get a specific contract by ID 
-router.get("/:id", getContractById);
-
-// Edit a contract by contract_id
-router.put("/:id", editContract);
-
-// Delete a contract by contract_id
-router.delete("/:id", deleteContract);
-
-// Search contracts
-router.get("/search", searchContract);
+// Routes
+router.post("/", authenticateToken, postNewContract);
+ // Move search before /:id
+router.get("/", authenticateToken, getAllContracts);
+router.get("/:id", authenticateToken, getContractById);
+router.put("/:id", authenticateToken, editContract);
+// router.delete("/:id", authenticateToken, deleteContract);
+// router.post("/:id/sign", authenticateToken, upload.single('signature'), signContract);
 
 module.exports = router;

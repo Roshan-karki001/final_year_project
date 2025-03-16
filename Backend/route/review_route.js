@@ -1,24 +1,25 @@
+// routes/reviewRoutes.js
 const express = require("express");
-const {
-    getAllReviews,
-    getUserReviews,
-    getReviewById,
-    createReview,
-    updateReview,
-    deleteReview
-} = require("../controller/review_controller");
-const { authenticateToken } = require("../midware/authMiddleware");
-
 const router = express.Router();
+const { authenticateToken } = require("../midware/authMiddleware");
+const { Review, Signup } = require("../models/alldatabase");
+const { checkRole } = require("../midware/authMiddleware");
+const { 
+    getAllReviews, 
+    getUserReviews, 
+    createReview, 
+    updateReview, 
+    deleteReview 
+} = require("../controller/review_controller");
 
-// Public routes
+// Public Routes
 router.get("/", getAllReviews);
 router.get("/user/:id", getUserReviews);
-router.get("/:id", getReviewById);
 
-// Protected routes - require authentication
+// Protected Routes - Require Authentication
 router.post("/", authenticateToken, createReview);
 router.put("/:id", authenticateToken, updateReview);
 router.delete("/:id", authenticateToken, deleteReview);
+
 
 module.exports = router;

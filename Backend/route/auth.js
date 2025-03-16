@@ -7,16 +7,18 @@ const {
     verifyEmail,
     forgotPassword,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    editProfile
 } = require('../controller/authcontroller');
 
 // Public Routes
 router.post('/register', register);
 router.post('/login', login);
-router.get('/verify-email/:verificationToken', verifyEmail);
+router.post('/verify-email', authenticateToken, verifyEmail);  // Changed from GET to POST
 router.post('/forgot-password', forgotPassword);
 
 // Protected Routes
+router.put('/edit-profile', authenticateToken, editProfile);
 router.post('/change-password', authenticateToken, changePassword);
 router.delete('/delete', authenticateToken, deleteAccount);
 
