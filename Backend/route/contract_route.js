@@ -7,6 +7,8 @@ const {
     getContractById,
     postNewContract,
     editContract,
+    deleteContract,
+    signContract
 } = require('../controller/contract_controller');
 
 // Ensure uploads directory exists
@@ -23,7 +25,7 @@ router.post("/", authenticateToken, postNewContract);
 router.get("/", authenticateToken, getAllContracts);
 router.get("/:id", authenticateToken, getContractById);
 router.put("/:id", authenticateToken, editContract);
-// router.delete("/:id", authenticateToken, deleteContract);
-// router.post("/:id/sign", authenticateToken, upload.single('signature'), signContract);
+router.delete("/:id", authenticateToken, deleteContract);
+router.post("/:id/sign", authenticateToken, upload.single('signature'), signContract);
 
 module.exports = router;

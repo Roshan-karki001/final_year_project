@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const nodemailer = require("nodemailer");
 require("dotenv").config();
-const { Signup } = require("../models/alldatabase");
+const { Signup, Contract } = require("../models/alldatabase");
 
 const router = express.Router();
 
@@ -116,6 +116,7 @@ const verifyEmail = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { G_mail, password, role } = req.body;
+        console.log(G_mail,password,role);
         // Clean up email (remove any extra .com if present)
         const cleanEmail = G_mail.replace(/\.com\.com$/, '.com');
         
@@ -146,22 +147,28 @@ const login = async (req, res) => {
             return res.status(403).json({ message: "Please verify your email before logging in." });
         }
 
+        // In the login function, update the response:
         const token = jwt.sign(
-            { id: user._id, role: user.role, email: user.G_mail },
+            { 
+                id: user._id, 
+                role: user.role, 
+                email: user.G_mail 
+            },
             process.env.JWT_SECRET,
             { expiresIn: "24h" }
         );
-
+        
         res.status(200).json({
+            success: true,
             message: "Login successful",
             token,
             user: {
                 id: user._id,
-                name: `${user.F_name} ${user.L_name}`,
+                F_name: user.F_name,
+                L_name: user.L_name,
                 email: user.G_mail,
                 role: user.role,
-                client_id: user.client_id,
-                engineer_id: user.engineer_id
+                Phonenumber: user.Phonenumber
             }
         });
     } catch (error) {
@@ -213,45 +220,144 @@ const changePassword = async (req, res) => {
 // Delete Account Route
 const deleteAccount = async (req, res) => {
     try {
+        // Check for any existing contracts
+        const contracts = await Contract.find({ 
+            $or: [
+                { userId: req.user.id },
+                { engineerId: req.user.id }
+            ]
+        });
+
+        // If contracts exist, check their status
+        if (contracts.length > 0) {
+            const hasIncompleteContracts = contracts.some(contract => contract.status !== "done");
+            
+            if (hasIncompleteContracts) {
+                return res.status(403).json({ 
+                    success: false,
+                    message: "Cannot delete account: You have ongoing contracts. Please complete or cancel them first." 
+                });
+            }
+        }
+
+        // If no contracts or all contracts are done, proceed with deletion
         await Signup.findByIdAndDelete(req.user.id);
-        res.status(200).json({ message: "Account deleted successfully" });
+        res.status(200).json({ 
+            success: true,
+            message: "Account deleted successfully" 
+        });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error: error.message });
+        console.error("Delete account error:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Server error", 
+            error: error.message 
+        });
     }
 };
-
-// Edit Profile Route
-const editProfile = async (req, res) => {
+// add here view profile route using auth middleware
+const viewProfile = async (req, res) => {
     try {
-        const { F_name, L_name, Phonenumber } = req.body;
-        // Get user ID from the token that was decoded in middleware
-        const userId = req.user.id;
-
+        const userId = req.user.id; // Get user ID from auth middleware
         const user = await Signup.findById(userId);
+        
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // Update only the fields that are provided
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                F_name: user.F_name,
+                L_name: user.L_name,
+                G_mail: user.G_mail,
+                Phonenumber: user.Phonenumber,
+                role: user.role,
+                location: user.location,
+                bio: user.bio,
+                skills: user.skills,
+                experience: user.experience,
+                portfolio: user.portfolio,
+                socialLinks: user.socialLinks
+            }
+        });
+    } catch (error) {
+        console.error("View profile error:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Server error", 
+            error: error.message 
+        });
+    }
+};
+// Edit Profile Route
+const editProfile = async (req, res) => {
+    try {
+        const {
+            F_name, L_name, Phonenumber, location, bio,
+            skills, experience, portfolio, socialLinks,
+            profileImage
+        } = req.body;
+        
+        const userId = req.user.id;
+        const user = await Signup.findById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Update basic info
         if (F_name) user.F_name = F_name;
         if (L_name) user.L_name = L_name;
         if (Phonenumber) user.Phonenumber = Phonenumber;
+        
+        // Update profile details
+        if (profileImage) user.profileImage = profileImage;
+        if (location) user.location = location;
+        if (bio) user.bio = bio;
+        
+        // Update engineer-specific fields
+        if (skills) user.skills = skills;
+        if (experience) user.experience = experience;
+        if (portfolio) user.portfolio = portfolio;
+        
+        // Update social links
+        if (socialLinks) {
+            user.socialLinks = {
+                ...user.socialLinks,
+                ...socialLinks
+            };
+        }
 
         await user.save();
 
         res.status(200).json({
+            success: true,
             message: "Profile updated successfully",
             user: {
                 id: user._id,
-                name: `${user.F_name} ${user.L_name}`,
-                email: user.G_mail,
-                phoneNumber: user.Phonenumber,
-                role: user.role
+                F_name: user.F_name,
+                L_name: user.L_name,
+                G_mail: user.G_mail,
+                Phonenumber: user.Phonenumber,
+                role: user.role,
+                location: user.location,
+                bio: user.bio,
+                skills: user.skills,
+                experience: user.experience,
+                portfolio: user.portfolio,
+                socialLinks: user.socialLinks,
+                profileImage: user.profileImage
             }
         });
     } catch (error) {
         console.error("Edit profile error:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
+        res.status(500).json({ 
+            success: false,
+            message: "Server error", 
+            error: error.message 
+        });
     }
 };
 
@@ -260,8 +366,9 @@ module.exports = {
     register,
     login,
     verifyEmail,
-    editProfile,  // Changed from editprofile to editProfile
+    editProfile,  
     forgotPassword,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    viewProfile  // Add this line
 };

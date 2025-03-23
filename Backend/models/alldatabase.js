@@ -1,23 +1,56 @@
 const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
 
-// User Schema (renamed from userSchema to signupSchema)
+
 const signupSchema = new mongoose.Schema(
   {
     F_name: { type: String, required: true },
     L_name: { type: String, required: true },
-    G_mail: { type: String, required: true, unique: true },
+    G_mail: { type: String, required: true, unique: true, index: true },
     Phonenumber: { type: String, required: true },
     password: { type: String, required: true },
     role: { type: String, required: true, enum: ["client", "engineer"] },
+    
+    // Profile Details
+    profileImage: { type: String, default: "" },
+    location: { type: String, default: "" },
+    bio: { type: String, maxlength: 500, default: "" },
+
+    // Engineer-Specific Fields
+    skills: { type: [String], default: [] },
+    experience: [
+      {
+        title: { type: String },
+        company: { type: String },
+        years: { type: Number },
+      }
+    ],
+    portfolio: { type: [String], default: [] },
+
+    // Client-Specific Field
+    businessName: { type: String, default: "" },
+
+    // Social Media Links
+    socialLinks: {
+      linkedin: { type: String, default: "" },
+      github: { type: String, default: "" },
+      website: { type: String, default: "" }
+    },
+
+    // Account Verification & Security
     isVerified: { type: Boolean, default: false },
-    verificationToken: { type: String },
+    emailVerificationToken: { type: String },
+    emailVerificationCode: { type: String },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
-    emailVerificationCode: { type: String },
+
+    // Account Status
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
+
+module.exports = mongoose.model("User", signupSchema);
 
 // Project Schema
 const projectSchema = new mongoose.Schema(

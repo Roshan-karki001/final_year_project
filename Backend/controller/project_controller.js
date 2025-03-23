@@ -1,5 +1,32 @@
 const { Project, Signup } = require("../models/alldatabase");
 
+//get project which are done 
+//get project which are in progress
+//get project which are pending
+
+const getwholeroject = async (req, res) => {
+    try {
+        const projects = await Project.find()
+            .populate({
+                path: 'userId',
+                model: 'Signup',
+                select: 'F_name L_name G_mail'
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: projects.length,
+            projects: projects
+        });
+    } catch (err) {
+        console.error("Error fetching all projects:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
 // Get all projects for authenticated user
 const getAllProjects = async (req, res) => {
     try {
@@ -28,9 +55,13 @@ const getAllProjects = async (req, res) => {
 
 
 const createProject = async (req, res) => {
+    
     try {
+        console.log(1);
+        
         const { title, landArea, buildingType, budget, timeline } = req.body;
     
+        
         // Ensure userId is present
         if (!req.user || !req.user.id) {
           return res.status(401).json({ success: false, message: "Unauthorized: User ID is missing" });
@@ -200,10 +231,138 @@ const deleteProject = async (req, res) => {
     }
 };
 
+// Get completed projects
+const getDoneProjects = async (req, res) => {
+    try {
+        const projects = await Project.find({ status: "completed" })
+            .populate({
+                path: 'userId',
+                model: 'Signup',
+                select: 'F_name L_name G_mail'
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: projects.length,
+            projects: projects
+        });
+    } catch (err) {
+        console.error("Error fetching done projects:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Get in-progress projects
+const getProgressProjects = async (req, res) => {
+    try {
+        const projects = await Project.find({ status: "active" })
+            .populate({
+                path: 'userId',
+                model: 'Signup',
+                select: 'F_name L_name G_mail'
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: projects.length,
+            projects: projects
+        });
+    } catch (err) {
+        console.error("Error fetching in-progress projects:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Get active/pending projects
+const getActiveProjects = async (req, res) => {
+    try {
+        const projects = await Project.find({ status: "pending" })
+            .populate({
+                path: 'userId',
+                model: 'Signup',
+                select: 'F_name L_name G_mail'
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: projects.length,
+            projects: projects
+        });
+    } catch (err) {
+        console.error("Error fetching active projects:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Search projects for engineers based on criteria
+const searchProjectsForEngineers = async (req, res) => {
+    try {
+        const { minBudget, maxBudget, buildingType, timeline } = req.query;
+        
+        // Build query object
+        let query = { status: "pending" }; // Only show pending projects
+
+        // Budget range filter
+        if (minBudget || maxBudget) {
+            query.budget = {};
+            if (minBudget) query.budget.$gte = parseFloat(minBudget);
+            if (maxBudget) query.budget.$lte = parseFloat(maxBudget);
+        }
+
+        // Building type filter
+        if (buildingType) {
+            query.buildingType = { $regex: new RegExp(buildingType, 'i') };
+        }
+
+        // Timeline filter
+        if (timeline) {
+            query.timeline = { $lte: timeline };
+        }
+
+        const projects = await Project.find(query)
+            .populate({
+                path: 'userId',
+                model: 'Signup',
+                select: 'F_name L_name G_mail'
+            })
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            count: projects.length,
+            projects: projects
+        });
+    } catch (err) {
+        console.error("Error searching projects for engineers:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Add to module.exports
 module.exports = {
+    getwholeroject,
     getAllProjects,
     createProject,
     searchByTitleOrUser,
     updateProject,
-    deleteProject
+    deleteProject,
+    getDoneProjects,     // Add this
+    getProgressProjects, // Add this
+    getActiveProjects,    // Add this
+    searchProjectsForEngineers
 };
