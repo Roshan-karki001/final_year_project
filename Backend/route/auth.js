@@ -8,7 +8,10 @@ const {
     forgotPassword,
     changePassword,
     deleteAccount,
-    editProfile
+    editProfile,
+    viewProfile,
+    uploadProfileImage,
+    deleteProfileImage
 } = require('../controller/authcontroller');
 
 // Public Routes
@@ -21,5 +24,10 @@ router.post('/forgot-password', forgotPassword);
 router.put('/edit-profile', authenticateToken, editProfile);
 router.post('/change-password', authenticateToken, changePassword);
 router.delete('/delete', authenticateToken, deleteAccount);
+router.get('/profile', authenticateToken, viewProfile);
+router.post('/profile/upload-image', authenticateToken, uploadProfileImage);
+router.delete('/profile/delete-image', authenticateToken, deleteProfileImage);
+
+
 
 module.exports = router;

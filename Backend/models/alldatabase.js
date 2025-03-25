@@ -12,7 +12,12 @@ const signupSchema = new mongoose.Schema(
     role: { type: String, required: true, enum: ["client", "engineer"] },
     
     // Profile Details
-    profileImage: { type: String, default: "" },
+    // Profile Image (Updated)
+    profileImage: {
+      url: { type: String, default: "" },
+      publicId: { type: String }, // For cloud storage reference if needed
+      uploadDate: { type: Date, default: Date.now }
+    },
     location: { type: String, default: "" },
     bio: { type: String, maxlength: 500, default: "" },
 
@@ -27,15 +32,15 @@ const signupSchema = new mongoose.Schema(
     ],
     portfolio: { type: [String], default: [] },
 
-    // Client-Specific Field
-    businessName: { type: String, default: "" },
-
     // Social Media Links
     socialLinks: {
       linkedin: { type: String, default: "" },
       github: { type: String, default: "" },
       website: { type: String, default: "" }
     },
+    imageUrl: String,
+    uploadDate: { type: Date, default: Date.now },
+    fileName: String,
 
     // Account Verification & Security
     isVerified: { type: Boolean, default: false },
@@ -49,8 +54,6 @@ const signupSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-module.exports = mongoose.model("User", signupSchema);
 
 // Project Schema
 const projectSchema = new mongoose.Schema(
@@ -69,6 +72,8 @@ const projectSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+
 
 
 
@@ -116,8 +121,10 @@ const reviewSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
+
 // Models
-const Signup = mongoose.model("Signup", signupSchema);  // Changed from User to Signup
+const Signup = mongoose.model("Signup", signupSchema);
 const Project = mongoose.model("Project", projectSchema);
 const Contract = mongoose.model("Contract", contractSchema);
 const Message = mongoose.model("Message", messageSchema);

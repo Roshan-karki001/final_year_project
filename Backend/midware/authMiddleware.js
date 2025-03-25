@@ -23,6 +23,7 @@ const authenticateToken = (req, res, next) => {
                 id: decoded.id || decoded._id,
                 role: decoded.role,
                 email: decoded.email || decoded.G_mail
+                
             };
 
             next();
