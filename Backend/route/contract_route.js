@@ -21,9 +21,8 @@ if (!fs.existsSync(dir)) {
 
 // Routes
 router.post("/", authenticateToken, postNewContract);
- // Move search before /:id
 router.get("/", authenticateToken, getAllContracts);
-router.get("/:id", authenticateToken, getContractById);
+router.get("/:searchId", authenticateToken, getContractById);  // Updated parameter name to match controller
 router.put("/:id", authenticateToken, editContract);
 router.delete("/:id", authenticateToken, deleteContract);
 router.post("/:id/sign", authenticateToken, upload.single('signature'), signContract);

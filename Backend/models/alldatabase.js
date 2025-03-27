@@ -38,9 +38,6 @@ const signupSchema = new mongoose.Schema(
       github: { type: String, default: "" },
       website: { type: String, default: "" }
     },
-    imageUrl: String,
-    uploadDate: { type: Date, default: Date.now },
-    fileName: String,
 
     // Account Verification & Security
     isVerified: { type: Boolean, default: false },
@@ -56,20 +53,28 @@ const signupSchema = new mongoose.Schema(
 );
 
 // Project Schema
-const projectSchema = new mongoose.Schema(
-  {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "Signup", required: true },
-    title: { type: String, required: true },
-    landArea: { type: Number, required: true },
-    buildingType: { type: String, required: true },
-    budget: { type: Number, required: true },
-    timeline: { type: String, required: true },
-    status: {
-      type: String,
-      enum: ["pending", "active", "completed", "cancelled"],
-      default: "pending",
-    },
+const projectSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "Signup", required: true },
+  title: { type: String, required: true },
+  landArea: { type: Number, required: true },
+  buildingType: { type: String, required: true },
+  budget: { type: Number, required: true },
+  timeline: { type: String, required: true },
+  status: {
+    type: String,
+    enum: ["pending", "active", "completed", "cancelled"],
+    default: "pending",
   },
+  applications: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Signup'
+  }],
+  assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Signup',
+      default: null
+  }
+},
   { timestamps: true }
 );
 

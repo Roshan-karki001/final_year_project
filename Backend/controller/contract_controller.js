@@ -1,5 +1,6 @@
 const { Contract, Project, Signup } = require("../models/alldatabase");
 const mongoose = require("mongoose");
+const { getAllClient, getAllUsers, getAllEngineers } = require("./authcontroller");
 
 // Get all contracts
 const getAllContracts = async (req, res) => {
@@ -26,50 +27,36 @@ const getAllContracts = async (req, res) => {
 
 const getContractById = async (req, res) => {
     try {
-        const searchId = req.query.searchId;
+        const { searchId } = req.params;
         
         if (!searchId) {
             return res.status(400).json({
                 success: false,
-                message: "searchId parameter is required"
+                message: "Contract ID is required"
             });
         }
 
-        let searchQuery;
-        // If authenticated user is a client, search by engineerId
-        if (req.user.role === 'client') {
-            searchQuery = {
-                userId: req.user.id,
-                engineerId: searchId
-            };
-        }
-        // If authenticated user is an engineer, search by userId
-        else if (req.user.role === 'engineer') {
-            searchQuery = {
-                userId: searchId,
-                engineerId: req.user.id
-            };
-        } else {
-            return res.status(403).json({
+        const contract = await Contract.findById(searchId)
+            .populate('userId', 'F_name L_name G_mail Phonenumber')
+            .populate('engineerId', 'F_name L_name G_mail Phonenumber')
+            .populate('projectId');
+
+        if (!contract) {
+            return res.status(404).json({
                 success: false,
-                message: "Unauthorized access"
+                message: "Contract not found"
             });
         }
 
-        const contracts = await Contract.find(searchQuery)
-            .populate("projectId userId engineerId");
-
-        return res.status(200).json({
+        res.status(200).json({
             success: true,
-            message: "Contracts retrieved successfully",
-            contracts
+            contract
         });
     } catch (error) {
-        console.error("Error fetching contracts:", error);
-        return res.status(500).json({ 
-            success: false, 
-            error: "Failed to retrieve contracts",
-            details: error.message 
+        res.status(500).json({
+            success: false,
+            message: "Error fetching contract",
+            error: error.message
         });
     }
 };
@@ -278,5 +265,8 @@ module.exports = {
     editContract, 
     deleteContract, 
     searchContract, 
-    signContract 
+    signContract ,
+    getAllClient,
+    getAllUsers,
+    getAllEngineers,
 };

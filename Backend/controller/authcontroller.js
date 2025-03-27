@@ -553,7 +553,112 @@ const deleteProfileImage = async (req, res) => {
     }
 };
 
-// Update the exports
+// Get all users route
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await Signup.find({}, {
+            password: 0,
+            verificationToken: 0,
+            emailVerificationCode: 0
+        });
+
+        res.status(200).json({
+            success: true,
+            users: users.map(user => ({
+                id: user._id,
+                F_name: user.F_name,
+                L_name: user.L_name,
+                G_mail: user.G_mail,
+                role: user.role,
+                location: user.location,
+                profileImage: user.profileImage
+            }))
+        });
+    } catch (error) {
+        console.error("Get all users error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
+
+const getAllClient = async (req, res) => {
+    try {
+        const engineers = await Signup.find(
+            { role: 'client' },
+            {
+                password: 0,
+                verificationToken: 0,
+                emailVerificationCode: 0
+            }
+        );
+
+        res.status(200).json({
+            success: true,
+            engineers: engineers.map(engineer => ({
+                id: engineer._id,
+                F_name: engineer.F_name,
+                L_name: engineer.L_name,
+                G_mail: engineer.G_mail,
+                location: engineer.location,
+                bio: engineer.bio,
+                skills: engineer.skills,
+                experience: engineer.experience,
+                portfolio: engineer.portfolio,
+                socialLinks: engineer.socialLinks,
+                profileImage: engineer.profileImage
+            }))
+        });
+    } catch (error) {
+        console.error("Get all engineers error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
+// Get all engineers route
+const getAllEngineers = async (req, res) => {
+    try {
+        const engineers = await Signup.find(
+            { role: 'engineer' },
+            {
+                password: 0,
+                verificationToken: 0,
+                emailVerificationCode: 0
+            }
+        );
+
+        res.status(200).json({
+            success: true,
+            engineers: engineers.map(engineer => ({
+                id: engineer._id,
+                F_name: engineer.F_name,
+                L_name: engineer.L_name,
+                G_mail: engineer.G_mail,
+                location: engineer.location,
+                bio: engineer.bio,
+                skills: engineer.skills,
+                experience: engineer.experience,
+                portfolio: engineer.portfolio,
+                socialLinks: engineer.socialLinks,
+                profileImage: engineer.profileImage
+            }))
+        });
+    } catch (error) {
+        console.error("Get all engineers error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
+
+// Update the exports section
 module.exports = {
     register,
     login,
@@ -561,9 +666,11 @@ module.exports = {
     changePassword,
     forgotPassword,
     editProfile,
-    
     deleteAccount,
     uploadProfileImage,
     deleteProfileImage,
-    viewProfile
+    viewProfile,
+    getAllUsers,      // Add this
+    getAllEngineers ,
+    getAllClient  // Add this
 };

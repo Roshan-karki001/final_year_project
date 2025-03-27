@@ -11,7 +11,10 @@ const {
     editProfile,
     viewProfile,
     uploadProfileImage,
-    deleteProfileImage
+    deleteProfileImage,
+    getAllUsers,        // Updated name
+    getAllEngineers,
+    getAllClient,    // Updated name
 } = require('../controller/authcontroller');
 
 // Public Routes
@@ -28,6 +31,9 @@ router.get('/profile', authenticateToken, viewProfile);
 router.post('/profile/upload-image', authenticateToken, uploadProfileImage);
 router.delete('/profile/delete-image', authenticateToken, deleteProfileImage);
 
-
+// Admin Routes
+router.get('/users', authenticateToken, getAllUsers);
+router.get('/engineers', getAllEngineers);
+router.get('/client', getAllClient);
 
 module.exports = router;

@@ -27,6 +27,7 @@ const getwholeroject = async (req, res) => {
         });
     }
 };
+
 // Get all projects for authenticated user
 const getAllProjects = async (req, res) => {
     try {
@@ -311,18 +312,27 @@ const searchProjectsForEngineers = async (req, res) => {
     try {
         const { minBudget, maxBudget, buildingType, timeline } = req.query;
         
+        // Debug log
+        console.log('Received query parameters:', req.query);
+        
         // Build query object
         let query = { status: "pending" }; // Only show pending projects
 
-        // Budget range filter
+        // Budget range filter with validation
         if (minBudget || maxBudget) {
             query.budget = {};
-            if (minBudget) query.budget.$gte = parseFloat(minBudget);
-            if (maxBudget) query.budget.$lte = parseFloat(maxBudget);
+            if (minBudget) {
+                const min = parseFloat(minBudget);
+                if (!isNaN(min)) query.budget.$gte = min;
+            }
+            if (maxBudget) {
+                const max = parseFloat(maxBudget);
+                if (!isNaN(max)) query.budget.$lte = max;
+            }
         }
 
         // Building type filter
-        if (buildingType) {
+        if (buildingType && buildingType !== '') {
             query.buildingType = { $regex: new RegExp(buildingType, 'i') };
         }
 
@@ -331,6 +341,8 @@ const searchProjectsForEngineers = async (req, res) => {
             query.timeline = { $lte: timeline };
         }
 
+        console.log('Constructed query:', query); // Debug log
+
         const projects = await Project.find(query)
             .populate({
                 path: 'userId',
@@ -338,6 +350,8 @@ const searchProjectsForEngineers = async (req, res) => {
                 select: 'F_name L_name G_mail'
             })
             .sort({ createdAt: -1 });
+
+        console.log(`Found ${projects.length} projects`); // Debug log
 
         res.status(200).json({
             success: true,
@@ -348,12 +362,163 @@ const searchProjectsForEngineers = async (req, res) => {
         console.error("Error searching projects for engineers:", err);
         res.status(500).json({
             success: false,
+            message: "Error searching projects",
             error: err.message
         });
     }
 };
 
-// Add to module.exports
+const getProjectById = async (req, res) => {
+    try {
+        const projectId = req.params.id;
+        
+        const project = await Project.findById(projectId)
+            .populate({
+                path: 'userId',
+                model: 'Signup',
+                select: 'F_name L_name G_mail Phonenumber location bio skills experience portfolio'
+            });
+
+        if (!project) {
+            return res.status(404).json({
+                success: false,
+                message: "Project not found"
+            });
+        }
+
+        // Format the project details
+        const projectDetails = {
+            success: true,
+            project: {
+                _id: project._id,
+                title: project.title,
+                landArea: project.landArea,
+                buildingType: project.buildingType,
+                budget: project.budget,
+                timeline: project.timeline,
+                status: project.status,
+                createdAt: project.createdAt,
+                client: {
+                    _id: project.userId._id,
+                    name: `${project.userId.F_name} ${project.userId.L_name}`,
+                    email: project.userId.G_mail,
+                    phone: project.userId.Phonenumber,
+                    location: project.userId.location,
+                    bio: project.userId.bio
+                }
+            }
+        };
+
+        res.status(200).json(projectDetails);
+    } catch (err) {
+        console.error('Error fetching project:', err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Add new function to apply for a project
+const applyForProject = async (req, res) => {
+    try {
+        const projectId = req.params.id;
+        const applicantId = req.user.id;
+
+        const project = await Project.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                success: false,
+                message: "Project not found"
+            });
+        }
+
+        // Check if user is trying to apply to their own project
+        if (project.userId.toString() === applicantId.toString()) {
+            return res.status(400).json({
+                success: false,
+                message: "You cannot apply to your own project"
+            });
+        }
+
+        // Check if user has already applied
+        if (project.applications && project.applications.includes(applicantId)) {
+            return res.status(400).json({
+                success: false,
+                message: "You have already applied to this project"
+            });
+        }
+
+        // Add application to project
+        project.applications = project.applications || [];
+        project.applications.push(applicantId);
+        await project.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Successfully applied to project"
+        });
+    } catch (err) {
+        console.error("Error applying to project:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Add new function to accept an application
+const acceptApplication = async (req, res) => {
+    try {
+        const { projectId, applicantId } = req.body;
+
+        const project = await Project.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                success: false,
+                message: "Project not found"
+            });
+        }
+
+        // Verify that the current user owns the project
+        if (project.userId.toString() !== req.user.id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: "Only the project owner can accept applications"
+            });
+        }
+
+        // Verify that the applicant has actually applied
+        if (!project.applications || !project.applications.includes(applicantId)) {
+            return res.status(400).json({
+                success: false,
+                message: "This user has not applied to the project"
+            });
+        }
+
+        // Update project status and assign to applicant
+        project.status = "active";
+        project.assignedTo = applicantId;
+        project.applications = []; // Clear applications after accepting one
+        await project.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Application accepted successfully",
+            project: project
+        });
+    } catch (err) {
+        console.error("Error accepting application:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
+    }
+};
+
+// Update module.exports
 module.exports = {
     getwholeroject,
     getAllProjects,
@@ -361,8 +526,11 @@ module.exports = {
     searchByTitleOrUser,
     updateProject,
     deleteProject,
+    getProjectById,
     getDoneProjects,     // Add this
     getProgressProjects, // Add this
     getActiveProjects,    // Add this
-    searchProjectsForEngineers
+    searchProjectsForEngineers,
+    applyForProject,
+    acceptApplication,
 };

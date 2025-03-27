@@ -9,33 +9,35 @@ const {
     updateProject,
     deleteProject,
     getDoneProjects,
+    getProjectById,
     getProgressProjects,
     getActiveProjects,
-    searchProjectsForEngineers
+    searchProjectsForEngineers,
+    applyForProject,
+    acceptApplication,
 } = require("../controller/project_controller");
 
 
 // Get all projects for authenticated user
-router.get("/", authenticateToken, getAllProjects);
-
-// Create a new project (Only clients can create projects)
-router.post("/create", authenticateToken, checkRole("client"), createProject);
-
-// Search projects by title or user name
-router.get("/search", authenticateToken, searchByTitleOrUser);  // Remove /projects from the URL
-
-// Update a project (Only the owner of the project can update)
-router.put("/update/:id", authenticateToken, checkRole("client"), updateProject);
-
-// Delete a project (Only the owner of the project can delete)
-router.delete("/delete/:id", authenticateToken, checkRole("client"), deleteProject);
-
+// Move the engineer search route to the top of the routes (before other specific routes)
+router.get('/engineer-search', authenticateToken, checkRole("engineer"), searchProjectsForEngineers);
 router.get('/completed', authenticateToken, getDoneProjects);
 router.get('/progress', authenticateToken, getProgressProjects);
 router.get('/active', authenticateToken, getActiveProjects);
+router.get('/search', authenticateToken, searchByTitleOrUser);
+router.get('/all', getwholeroject);
 
-// Engineer project search route (should be before /:search route)
-router.get("/all", getwholeroject);
-router.get('/engineer-search', authenticateToken, checkRole("engineer"), searchProjectsForEngineers);
+// Create, update, delete routes
+router.post('/create', authenticateToken, checkRole("client"), createProject);
+router.put('/update/:id', authenticateToken, checkRole("client"), updateProject);
+router.delete('/delete/:id', authenticateToken, checkRole("client"), deleteProject);
+
+// Application routes
+router.post('/:id/apply', authenticateToken, applyForProject);
+router.post('/accept-application', authenticateToken, acceptApplication);
+
+// Parameter routes should be last
+router.get('/:id', authenticateToken, getProjectById);
+router.get('/', authenticateToken, getAllProjects);
 
 module.exports = router;

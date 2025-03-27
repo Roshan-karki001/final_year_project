@@ -1,10 +1,14 @@
+const mongoose = require('mongoose');
+const express = require('express');
+const app = express();
+
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+  serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
 })
 .then(() => console.log('Connected to MongoDB'))
 .catch(err => console.error('MongoDB connection error:', err));
 
-app.use('/uploads', express.static('uploads'));
+module.exports = app;

@@ -1,29 +1,41 @@
-const socket = io('http://localhost:5000');
-
-// Inform server when user connects
-socket.emit('userConnected', currentUserId);
-
-// Listen for new messages
-socket.on('newMessage', (data) => {
-    console.log('New message received:', data);
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "http://localhost:3000",
+        methods: ["GET", "POST"]
+    }
 });
 
-// Listen for typing indicators
-socket.on('userTyping', (data) => {
-    console.log(`User ${data.sender_id} is typing...`);
+let activeUsers = new Map();
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+
+    socket.on('userConnected', (userId) => {
+        activeUsers.set(socket.id, userId);
+        io.emit('userOnline', { userId });
+    });
+
+    socket.on('sendMessage', async (data) => {
+        const receiverSocket = [...activeUsers.entries()].find(([_, userId]) => userId === data.receiver_id)?.[0];
+        if (receiverSocket) {
+            io.to(receiverSocket).emit('newMessage', data);
+        }
+    });
+
+    socket.on('typing', (data) => {
+        const receiverSocket = [...activeUsers.entries()].find(([_, userId]) => userId === data.receiver_id)?.[0];
+        if (receiverSocket) {
+            io.to(receiverSocket).emit('userTyping', { sender_id: data.sender_id });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        const userId = activeUsers.get(socket.id);
+        if (userId) {
+            activeUsers.delete(socket.id);
+            io.emit('userOffline', { userId });
+        }
+    });
 });
 
-// Emit typing event
-socket.emit('typing', {
-    sender_id: currentUserId,
-    receiver_id: targetUserId
-});
-
-// Listen for online/offline status
-socket.on('userOnline', (data) => {
-    console.log(`User ${data.userId} is online`);
-});
-
-socket.on('userOffline', (data) => {
-    console.log(`User ${data.userId} went offline`);
-});
+module.exports = io;
