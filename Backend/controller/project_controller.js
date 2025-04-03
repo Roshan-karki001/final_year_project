@@ -232,10 +232,20 @@ const deleteProject = async (req, res) => {
     }
 };
 
-// Get completed projects
+// Get completed projects for authenticated user
 const getDoneProjects = async (req, res) => {
     try {
-        const projects = await Project.find({ status: "completed" })
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication failed: No user data found"
+            });
+        }
+
+        const projects = await Project.find({ 
+            userId: req.user.id,
+            status: "completed" 
+        })
             .populate({
                 path: 'userId',
                 model: 'Signup',
@@ -257,10 +267,20 @@ const getDoneProjects = async (req, res) => {
     }
 };
 
-// Get in-progress projects
+// Get in-progress projects for authenticated user
 const getProgressProjects = async (req, res) => {
     try {
-        const projects = await Project.find({ status: "active" })
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication failed: No user data found"
+            });
+        }
+
+        const projects = await Project.find({ 
+            userId: req.user.id,
+            status: "active" 
+        })
             .populate({
                 path: 'userId',
                 model: 'Signup',
@@ -282,10 +302,20 @@ const getProgressProjects = async (req, res) => {
     }
 };
 
-// Get active/pending projects
+// Get active/pending projects for authenticated user
 const getActiveProjects = async (req, res) => {
     try {
-        const projects = await Project.find({ status: "pending" })
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({
+                success: false,
+                message: "Authentication failed: No user data found"
+            });
+        }
+
+        const projects = await Project.find({ 
+            userId: req.user.id,
+            status: "pending" 
+        })
             .populate({
                 path: 'userId',
                 model: 'Signup',
@@ -369,54 +399,46 @@ const searchProjectsForEngineers = async (req, res) => {
 };
 
 const getProjectById = async (req, res) => {
-    try {
-        const projectId = req.params.id;
-        
-        const project = await Project.findById(projectId)
-            .populate({
-                path: 'userId',
-                model: 'Signup',
-                select: 'F_name L_name G_mail Phonenumber location bio skills experience portfolio'
-            });
-
-        if (!project) {
-            return res.status(404).json({
-                success: false,
-                message: "Project not found"
-            });
-        }
-
-        // Format the project details
-        const projectDetails = {
-            success: true,
-            project: {
-                _id: project._id,
-                title: project.title,
-                landArea: project.landArea,
-                buildingType: project.buildingType,
-                budget: project.budget,
-                timeline: project.timeline,
-                status: project.status,
-                createdAt: project.createdAt,
-                client: {
-                    _id: project.userId._id,
-                    name: `${project.userId.F_name} ${project.userId.L_name}`,
-                    email: project.userId.G_mail,
-                    phone: project.userId.Phonenumber,
-                    location: project.userId.location,
-                    bio: project.userId.bio
-                }
-            }
-        };
-
-        res.status(200).json(projectDetails);
-    } catch (err) {
-        console.error('Error fetching project:', err);
-        res.status(500).json({
-            success: false,
-            error: err.message
-        });
+  try {
+    const { id } = req.params;
+    
+    // Check if the ID is 'user-projects' and handle it differently
+    if (id === 'user-projects') {
+      // Get user's projects instead
+      const userId = req.user.id; // Assuming you have user info in req.user
+      const projects = await Project.find({ userId })
+        .populate('userId', 'F_name L_name G_mail')
+        .sort({ createdAt: -1 });
+      
+      return res.status(200).json({
+        success: true,
+        projects
+      });
     }
+
+    // Regular project fetch by ID
+    const project = await Project.findById(id)
+      .populate('userId', 'F_name L_name G_mail');
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      project
+    });
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching project',
+      error: error.message
+    });
+  }
 };
 
 // Add new function to apply for a project

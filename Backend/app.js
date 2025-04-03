@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const express = require('express');
 const app = express();
 
+const adminRoutes = require('./routes/admin_routes');
+app.use('/api/admin', adminRoutes);
+
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,

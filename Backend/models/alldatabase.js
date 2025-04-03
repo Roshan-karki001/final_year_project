@@ -9,8 +9,28 @@ const signupSchema = new mongoose.Schema(
     G_mail: { type: String, required: true, unique: true, index: true },
     Phonenumber: { type: String, required: true },
     password: { type: String, required: true },
-    role: { type: String, required: true, enum: ["client", "engineer"] },
+    role: { 
+      type: String, 
+      required: true, 
+      enum: ["client", "engineer", "admin"],
+      default: "client"
+    },
     
+    // Admin-Specific Fields
+    isAdmin: { type: Boolean, default: false },
+    adminPrivileges: {
+      canManageUsers: { type: Boolean, default: false },
+      canManageProjects: { type: Boolean, default: false },
+      canManageContracts: { type: Boolean, default: false },
+      canModerateReviews: { type: Boolean, default: false },
+      canAccessAnalytics: { type: Boolean, default: false }
+    },
+    adminActions: [{
+      action: { type: String },
+      targetId: { type: mongoose.Schema.Types.ObjectId },
+      timestamp: { type: Date, default: Date.now }
+    }],
+
     // Profile Details
     // Profile Image (Updated)
     profileImage: {
